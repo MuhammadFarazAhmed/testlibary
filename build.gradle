@@ -1,0 +1,110 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    ext {
+        sdkVersionCode = 1                      // version code for txsdk
+        sdkVersion = '1.0.0'                    // version for txsdk and common
+        pomGroupID = "io.github.muhammadfarazahmed"   // pom group id for txsdk and common
+
+        cliVersion = '1.0.0'                    // clitool version
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:7.0.2"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.31"
+//        classpath "io.github.gradle-nexus.publish-plugin:1.0.0"
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+
+plugins {
+    id "io.github.gradle-nexus.publish-plugin" version "1.0.0"
+}
+
+
+ //Initialize publishing/signing extra properties with environmental vars
+ext['signing.keyId'] = System.getenv('SIGNING_KEY_ID') ?: ''
+ext['signing.password'] = System.getenv('SIGNING_PASSWORD') ?: ''
+ext['signing.secretKeyRingFile'] = System.getenv('SIGNING_SECRET_KEY_RING_FILE') ?: ''
+ext['ossrhUsername'] = System.getenv('OSSRH_USERNAME') ?: ''
+ext['ossrhPassword'] = System.getenv('OSSRH_PASSWORD') ?: ''
+
+File secretPropsFile = project.rootProject.file('local.properties')
+if (secretPropsFile.exists()) {
+    Properties p = new Properties()
+    p.load(new FileInputStream(secretPropsFile))
+    p.each { name, value ->
+        ext[name] = value
+    }
+}
+
+// If the key content is in an environmental var, write it to "tmp/key.pgp" and update
+// ext['signing.secretKeyRingFile'] to point to it
+def pgpKeyContent = System.getenv('PGP_KEY_CONTENTS')
+if (pgpKeyContent != null) {
+    def tmpDir = new File("$rootProject.rootDir/tmp")
+    mkdir tmpDir
+    def keyFile = new File("$tmpDir/key.pgp")
+    keyFile.createNewFile()
+    def os = keyFile.newDataOutputStream()
+    os.write(pgpKeyContent.decodeBase64())
+    os.close()
+    pgpKeyContent = ''
+
+    ext['signing.secretKeyRingFile'] = keyFile.absolutePath
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            stagingProfileId = '49580d72e9499b'
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            username = ossrhUsername
+            password = ossrhPassword
+            version = sdkVersion
+        }
+    }
+}
+gradle.projectsEvaluated {
+
+    task aggregatedJavadoc(type: Javadoc, description: 'Generate javadocs from "common" and "txsdk" modules',
+            group: JavaBasePlugin.DOCUMENTATION_GROUP) {
+        options.encoding 'utf-8'
+        options {
+            addStringOption 'docencoding', 'utf-8'
+            addStringOption 'charset', 'utf-8'
+            addStringOption 'overview', 'doc/readme.html'
+            links 'https://docs.oracle.com/javase/7/docs/api/'
+            links 'https://d.android.com/reference'
+            links 'https://developer.android.com/reference/androidx/'
+        }
+        title = "Native SDK $sdkVersion"
+
+        destinationDir project.file("$project.buildDir/docs/javadoc")
+
+        Set<Project> projectSet = subprojects.findAll{ subproject ->
+            subproject.name == 'txsdk' || subproject.name == 'common'
+        }
+
+        // Merge the properties of the androidJavadoc tasks of the subprojects
+        source = projectSet.androidJavadoc.source
+        classpath = project.files(projectSet.androidJavadoc.classpath)
+        excludes = projectSet.androidJavadoc.excludes.flatten().unique()
+        includes = projectSet.androidJavadoc.includes.flatten().unique()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+    delete "$rootProject.rootDir/tmp"
+}
+
+task cleanTmp(type: Delete) {
+    delete "$rootProject.rootDir/tmp"
+}
