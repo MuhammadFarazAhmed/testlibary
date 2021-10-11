@@ -89,7 +89,7 @@ gradle.projectsEvaluated {
         destinationDir project.file("$project.buildDir/docs/javadoc")
 
         Set<Project> projectSet = subprojects.findAll{ subproject ->
-            subproject.name == 'txsdk' || subproject.name == 'common'
+            subproject.name == 'mylibrary' || subproject.name == 'common'
         }
 
         // Merge the properties of the androidJavadoc tasks of the subprojects
