@@ -19,6 +19,10 @@ jobs:
          java-version: 11
          
         # Builds the release artifacts of the library
+      - name: Change wrapper permissions
+        run: chmod +x ./gradlew
+      - name: Build with Gradle
+        run: ./gradlew build
       - name: Release build
         run: ./gradlew :testlibary:assembleRelease
 
