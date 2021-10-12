@@ -24,7 +24,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
       - name: Release build
-        run: ./gradlew :app:assembleRelease
+        run: ./gradlew  assembleRelease -x app:assembleRelease -x :myapplication:assembleRelease
 
         # Generates other artifacts (javadocJar is optional)
       - name: Source jar and dokka
