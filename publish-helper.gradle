@@ -63,7 +63,7 @@ afterEvaluate {
                 artifact javaSourcesJar
 
                 groupId 'io.github.muhammadfarazahmed'
-                version '1.0.2'
+                version '1.0.4'
                 pom {
                     name = artifactId
                     description = 'description'
